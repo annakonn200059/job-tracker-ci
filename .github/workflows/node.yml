@@ -5,7 +5,7 @@ on:
     inputs:
       node-version:
         type: string
-        default: "22"
+        default: "24"
       turbo-filter:
         description: 'Turborepo filter, e.g. "web..." — empty runs everything'
         type: string
