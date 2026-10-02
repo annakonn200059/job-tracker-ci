@@ -41,7 +41,7 @@ jobs:
       - name: go vet
         run: go vet ./...
 
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v7  # Updated from v6 to v7
         with:
           working-directory: ${{ inputs.working-directory }}
           args: --timeout=${{ inputs.lint-timeout }}
@@ -57,8 +57,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go-version }}
-          cache-dependency-path: ${{ inputs.working-directory }}/go.sum
-
+          cache-dependency-path: ${{ inputs.working-directory }}/go.sum  
       # -race catches the data races that make concurrency bugs
       # non-reproducible. Roughly 2-10x slower, worth it.
       - name: Test
@@ -80,8 +79,6 @@ jobs:
           go-version: ${{ inputs.go-version }}
           cache-dependency-path: ${{ inputs.working-directory }}/go.sum
 
-      # Compiles for the architecture the image will actually run on,
-      # not the runner's default.
       - name: Build
         env:
           CGO_ENABLED: 0
