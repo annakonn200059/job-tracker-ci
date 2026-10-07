@@ -26,6 +26,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -72,6 +73,7 @@ jobs:
           trivyignores: ${{ inputs.trivyignores }}
 
       - name: Push
+        id: push
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
@@ -79,13 +81,57 @@ jobs:
           for tag in $TAGS; do
             docker push "$tag"
           done
+          # Ask the registry for the digest; the local daemon's RepoDigests can
+          # point at a different manifest depending on its image store.
+          first_tag=$(echo "$TAGS" | head -n1)
+          digest=$(docker buildx imagetools inspect "$first_tag" --format '{{json .Manifest}}' | jq -r .digest)
+          if [[ "$digest" != sha256:* ]]; then
+            echo "::error::Could not resolve digest for $first_tag (got '$digest')"
+            exit 1
+          fi
+          ref="${first_tag%:*}@${digest}"
+          echo "digest=$ref" >> "$GITHUB_OUTPUT"
+          echo "Pushed $ref"
+
+      - name: Install cosign
+        if: steps.push.outcome == 'success'
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+
+      - name: Sign image
+        if: steps.push.outcome == 'success'
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: cosign sign --yes "$DIGEST"
+
+      - name: Generate SBOM
+        if: steps.push.outcome == 'success'
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: ${{ steps.push.outputs.digest }}
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+          upload-artifact: false
+
+      - name: Attest SBOM
+        if: steps.push.outcome == 'success'
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          cosign attest --yes \
+            --predicate sbom.cdx.json \
+            --type cyclonedx \
+            "$DIGEST"
 
       - name: Summary
         if: always()
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           {
             echo "### Image"
             echo '```'
-            echo "${{ steps.meta.outputs.tags }}"
+            echo "$TAGS"
+            [ -n "$DIGEST" ] && echo "$DIGEST"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
