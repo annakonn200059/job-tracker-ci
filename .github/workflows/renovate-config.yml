@@ -1,0 +1,28 @@
+name: Renovate config
+
+# Every repo extends default.json, so a broken preset silently stops
+# Renovate everywhere. Validate it here before it reaches main.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      # renovate: datasource=npm depName=renovate
+      RENOVATE_VERSION: "44.143.0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Validate
+        run: npx --yes --package "renovate@${RENOVATE_VERSION}" -- renovate-config-validator --strict default.json renovate.json

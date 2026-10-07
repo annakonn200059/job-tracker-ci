@@ -5,6 +5,7 @@ on:
     inputs:
       python-version:
         type: string
+        # renovate: datasource=python-version depName=python
         default: "3.12"
 
 permissions:
