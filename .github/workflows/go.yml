@@ -6,6 +6,7 @@ on:
       go-version:
         description: Go version to use
         type: string
+        # renovate: datasource=golang-version depName=go
         default: "1.26.7"
       working-directory:
         description: Directory containing go.mod

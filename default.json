@@ -1,0 +1,83 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Shared Renovate preset for the job-tracker repos. Extend with github>annakonn200059/job-tracker-ci",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests",
+    "docker:pinDigests"
+  ],
+  "timezone": "Europe/Zurich",
+  "schedule": ["before 6am on monday"],
+  "minimumReleaseAge": "3 days",
+  "prConcurrentLimit": 5,
+  "labels": ["dependencies"],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": ["dependencies", "security"]
+  },
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Versions in workflow files annotated with a `# renovate: datasource=... depName=...` comment on the line above",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+versioning=(?<versioning>\\S+))?\\s*\\n\\s*[\\w-]+:\\s*[\"']?(?<currentValue>[^\"'\\s]+)[\"']?"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Group non-major updates into one weekly PR and automerge it once CI passes",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "all non-major dependencies",
+      "automerge": true
+    },
+    {
+      "description": "Under semver a 0.x minor bump may break, so it gets its own PR and a human review",
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentVersion": "/^v?0\\./",
+      "groupName": "0.x minor updates",
+      "automerge": false
+    },
+    {
+      "description": "Go toolchain upgrades (go.mod, golang image, workflow inputs) land together and are reviewed",
+      "matchPackageNames": ["go", "golang"],
+      "matchUpdateTypes": ["major", "minor"],
+      "groupName": "Go toolchain",
+      "automerge": false
+    },
+    {
+      "description": "Renovate leaves the go.mod `go` directive alone unless told to bump it",
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["golang"],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "Node.js upgrades (.nvmrc, node image, workflow inputs) land together and are reviewed",
+      "matchPackageNames": ["node"],
+      "matchUpdateTypes": ["major", "minor"],
+      "groupName": "Node.js",
+      "automerge": false
+    },
+    {
+      "description": "Python upgrades (.python-version, python image, workflow inputs) land together and are reviewed",
+      "matchPackageNames": ["python"],
+      "matchUpdateTypes": ["major", "minor"],
+      "groupName": "Python",
+      "automerge": false
+    },
+    {
+      "description": "Shared workflows stay on release tags rather than SHAs: the tag is part of the cosign signing identity (see job-tracker-ci README)",
+      "matchPackageNames": ["annakonn200059/job-tracker-ci"],
+      "pinDigests": false,
+      "groupName": "job-tracker-ci workflows",
+      "automerge": true
+    }
+  ]
+}
