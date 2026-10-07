@@ -51,18 +51,6 @@ to `main`. The build fails on fixable HIGH/CRITICAL CVEs.
 Callers set their own `concurrency` — a reusable workflow can't cancel runs of
 the workflow calling it.
  
-## Releases
- 
-Callers reference a release tag (`@v1.0.0`), never `@main`, so a change here
-reaches a service only through a Renovate PR in that repo, after its own CI
-passes. To release, merge to `main` and push a semver tag:
- 
-```sh
-git tag -a v1.1.0 -m "v1.1.0" && git push origin v1.1.0
-```
- 
-Don't move or delete a published tag: callers and image signatures refer to it.
- 
 ## Renovate
  
 `default.json` is the shared preset. Each repo's `renovate.json` only extends it:
@@ -84,13 +72,6 @@ Repo-specific rules go in that file and override the preset. What the preset doe
 - Pins GitHub Actions and Docker images to digests, except these shared
   workflows, which stay on tags (see below).
 - Weekly lockfile refresh; `go mod tidy` after Go updates.
-- Picks up versions Renovate can't detect on its own from a comment on the
-  line above:
- 
-  ```yaml
-  # renovate: datasource=golang-version depName=go
-  go-version: "1.26.7"
-  ```
  
 `renovate-config.yml` validates the preset on every PR. A broken preset stops
 Renovate in every repo, so make it a required check.
