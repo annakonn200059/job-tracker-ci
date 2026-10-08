@@ -58,7 +58,10 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ inputs.image-name }}
-          cache-to: type=gha,mode=max,scope=${{ inputs.image-name }}
+          # The cache is an optimisation: when two runs race to write the same
+          # entry, GitHub refuses the second ("failed to reserve cache").
+          # That must not fail a build whose image is already done.
+          cache-to: type=gha,mode=max,scope=${{ inputs.image-name }},ignore-error=true
 
       - name: Scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
